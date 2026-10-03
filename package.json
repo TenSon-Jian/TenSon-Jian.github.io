@@ -8,6 +8,8 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "build:only": "vite build",
+    "prebuild": "node scripts/generate-github-snapshot.mjs",
+    "snapshot": "node scripts/generate-github-snapshot.mjs --force",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit"
   },

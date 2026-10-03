@@ -33,14 +33,34 @@ npm run preview
 复制 `.env.example` 为 `.env`：
 
 ```ini
-VITE_GITHUB_USERNAME=ajian
+VITE_GITHUB_USERNAME=TenSon-Jian
 # 可选：Personal Access Token，仅用于提升 GitHub API 速率限制
 VITE_GITHUB_TOKEN=
+# auto（默认，快照优先）| live（总是实时）| snapshot（只用快照，零请求）
+VITE_GITHUB_MODE=auto
 VITE_SITE_URL=https://ajian.dev
 ```
 
-> 不配置也能运行：GitHub 数据会按「缓存 → 网络 → 陈旧缓存 → 内置回退数据」的顺序降级，
+> 不配置也能运行：GitHub 数据会按「构建快照 → 缓存 → 网络 → 陈旧缓存 → 内置回退数据」的顺序降级，
 > 页面永远不会因为 API 不可用而白屏。
+
+### 构建快照（推荐开启）
+
+GitHub 未认证配额只有 **60 次/小时，而且按出口 IP 计算** —— 走代理或公司网关时，
+这份配额经常被别人耗尽，实时取数必然失败。因此站点支持在构建前把数据抓成静态快照：
+
+```bash
+npm run snapshot   # 手动抓取，写入 src/data/github-snapshot.json
+npm run build      # prebuild 会自动抓取（已有可用快照则跳过）
+```
+
+快照直接打包进产物，**运行时零 API 请求**，配额问题从架构上消失；代价是数据只在构建时更新，
+首页会显示「数据来自构建快照 · 日期」。
+
+- 快照文件缺失或结构不合法时，会自动退回内置回退数据，不会白屏。
+- 想强制刷新：`npm run snapshot`（`--force`），或 `node scripts/generate-github-snapshot.mjs --force`。
+- 抓取时设置 `GITHUB_TOKEN`（或 `VITE_GITHUB_TOKEN`）可把配额提到 5000 次/小时，成功率更高。
+- 想让本地开发始终看到实时数据：把 `VITE_GITHUB_MODE` 设为 `live`。
 
 ## 信息架构
 

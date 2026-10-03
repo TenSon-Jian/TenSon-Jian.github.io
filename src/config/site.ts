@@ -5,7 +5,7 @@
 export const siteConfig = {
   name: 'AJIAN',
   /** GitHub 用户名：可在 .env 中用 VITE_GITHUB_USERNAME 覆盖 */
-  githubUsername: import.meta.env.VITE_GITHUB_USERNAME || 'ajian',
+  githubUsername: import.meta.env.VITE_GITHUB_USERNAME || 'TenSon-Jian',
   /** 可选的 Personal Access Token，仅用于提升 API 速率限制 */
   githubToken: import.meta.env.VITE_GITHUB_TOKEN || '',
   tagline: 'Building things quietly.',
@@ -14,7 +14,7 @@ export const siteConfig = {
   url: import.meta.env.VITE_SITE_URL || 'https://ajian.dev',
   email: '1216800668a@gmail.com',
   links: {
-    github: 'https://github.com/Tengshou233',
+    github: 'https://github.com/TenSon-Jian',
     bilibili: 'https://space.bilibili.com/23215191?spm_id_from=333.788.0.0',
     steam: 'https://steamcommunity.com/profiles/76561198321359595/',
   },

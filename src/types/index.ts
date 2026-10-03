@@ -116,5 +116,45 @@ export interface GithubEvent {
   summary: string
 }
 
-/** 数据来源标记：用于 UI 提示「离线数据」 */
-export type DataSource = 'network' | 'cache' | 'fallback'
+/**
+ * 数据来源标记。
+ * - network：本次会话从 GitHub API 实时取得
+ * - cache：浏览器 localStorage 中的缓存
+ * - snapshot：构建时预生成的数据快照（见 scripts/generate-github-snapshot.mjs）
+ * - fallback：仓库内置的静态示例数据
+ */
+export type DataSource = 'network' | 'cache' | 'snapshot' | 'fallback'
+
+/**
+ * 构建期快照的结构。
+ * 与运行时取到的数据类型保持一致，因此可以直接当作降级数据使用。
+ */
+export interface GithubSnapshot {
+  username: string
+  /** 快照生成时刻（ISO 字符串），用于向用户说明数据新鲜度 */
+  generatedAt: string
+  stats: GithubStats
+  repos: GithubRepo[]
+  events: GithubEvent[]
+}
+
+/**
+ * 降级原因的结构化描述。
+ * `source` 只说「数据从哪来」，这里补充「为什么没能走 network」——
+ * 403 限流与超时都需要完全不同的处置，不能共用一句文案。
+ */
+export interface GithubErrorInfo {
+  message: string
+  /** HTTP 状态码；网络层失败（超时 / 被拦截）时为 undefined */
+  status?: number
+  /** 据此判断是否属于配额问题，需要等待而非重试 */
+  rateLimited?: boolean
+  /** 可重试的最早时刻（毫秒时间戳），来自 Retry-After 或 X-RateLimit-Reset */
+  retryAfter?: number
+  /** 响应头 x-ratelimit-remaining 的原值，仅用于诊断展示 */
+  rateLimitRemaining?: string
+  /** 响应头 x-ratelimit-limit 的原值，0 配额说明当前按未认证配额计算 */
+  rateLimitLimit?: string
+  /** 本次请求是否携带了 Authorization，用于区分「凭据问题」与「配额问题」 */
+  hasToken?: boolean
+}

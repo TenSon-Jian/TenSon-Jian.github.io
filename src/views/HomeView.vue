@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { ArrowUpRight, RefreshCw } from 'lucide-vue-next'
+import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-vue-next'
 import { siteConfig } from '@/config/site'
 import { projects as localProjects } from '@/data/fallback'
 import { notes } from '@/data/notes'
@@ -53,11 +53,53 @@ const statItems = computed(() => [
 const latestNotes = computed(() => notes.slice(0, 3))
 const toolPreview = computed(() => tools.slice(0, 8))
 
+/** 快照生成日期，用于说明这份数据的确切新鲜度 */
+const snapshotDateLabel = ref('')
+
+watch(
+  () => github.snapshotAt,
+  (value) => {
+    snapshotDateLabel.value = value
+      ? new Date(value).toLocaleDateString('zh-CN', {
+          timeZone: 'Asia/Shanghai',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        })
+      : ''
+  },
+  { immediate: true },
+)
+
 const sourceLabel = computed(() => {
-  if (github.statsSource === 'network') return null
-  if (github.statsSource === 'cache') return '来自本地缓存'
-  return 'GitHub 暂时不可达，显示离线数据'
+  if (!github.isDegraded) return null
+
+  // 快照优先说明：它既不是"过期缓存"，也不是"连不上"
+  if (github.statsSource === 'snapshot' || github.reposSource === 'snapshot') {
+    return snapshotDateLabel.value ? `数据来自构建快照 · ${snapshotDateLabel.value}` : '数据来自构建快照'
+  }
+  if (github.statsSource === 'cache' || github.reposSource === 'cache') {
+    return '数据来自本地缓存'
+  }
+  return '当前离线，显示内置档案'
 })
+
+/**
+ * 重试入口的三种形态：
+ *  - 冷却中：禁用并显示倒计时，因为此时点重试只会继续消耗原本就见底的配额
+ *  - 冷却结束：恢复可点，让用户能手动再试一次
+ *  - 非配额类失败（凭据无效 / 超时）：照旧可点，重试确实有意义
+ * 只有超时或凭据问题才提示重试——限流状态下重试按钮没有意义。
+ */
+const showRetry = computed(() => !github.coolingDown)
+
+const retryLabel = computed(() =>
+  github.coolingDown && github.cooldownSeconds > 0 ? `${github.cooldownSeconds}s` : '重试',
+)
+
+const retryBlockedHint = computed(() =>
+  github.coolingDown ? `GitHub 限流中，${github.cooldownSeconds} 秒后可重试` : undefined,
+)
 </script>
 
 <template>
@@ -98,11 +140,33 @@ const sourceLabel = computed(() => {
           </template>
         </dl>
 
-        <p v-if="sourceLabel" class="stats__source">
-          <RefreshCw :size="12" :stroke-width="1.8" aria-hidden="true" />
-          {{ sourceLabel }}
-          <button type="button" class="stats__retry" @click="github.refresh()">重试</button>
-        </p>
+        <!-- 数据来源与失败原因：来源只说「从哪来」，诊断行说清「为什么」。
+             正常情况下两项都不渲染。 -->
+        <div v-if="sourceLabel || github.error" class="stats__status">
+          <p v-if="sourceLabel" class="stats__source">
+            <RefreshCw :size="12" :stroke-width="1.8" aria-hidden="true" />
+            {{ sourceLabel }}
+          </p>
+
+          <p
+            v-if="github.error"
+            class="stats__diagnostic"
+            :class="{ 'is-warn': github.errorInfo?.rateLimited }"
+          >
+            <AlertTriangle :size="12" :stroke-width="1.8" aria-hidden="true" />
+            {{ github.error }}
+            <button
+              v-if="showRetry"
+              type="button"
+              class="stats__retry"
+              :disabled="github.coolingDown"
+              :title="retryBlockedHint"
+              @click="github.refresh()"
+            >
+              {{ retryLabel }}
+            </button>
+          </p>
+        </div>
       </div>
     </section>
 
@@ -313,20 +377,51 @@ const sourceLabel = computed(() => {
   margin-top: 6px;
 }
 
+.stats__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: var(--space-3);
+}
+
 .stats__source {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: var(--space-3);
   font-size: 11.5px;
   color: var(--text-tertiary);
 }
 
+/* 诊断行：把被掩盖的失败原因显式化，限流时改用警告色以区别普通错误 */
+.stats__diagnostic {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--danger);
+
+  svg {
+    flex: none;
+  }
+
+  &.is-warn {
+    color: var(--warn);
+  }
+}
+
 .stats__retry {
-  color: var(--accent-dark);
+  color: inherit;
   font-size: 11.5px;
   text-decoration: underline;
   text-underline-offset: 2px;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    text-decoration: none;
+  }
 }
 
 // ── 项目网格 ──
