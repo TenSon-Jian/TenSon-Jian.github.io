@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#F3EEDF" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#20201F" media="(prefers-color-scheme: dark)" />
+
+    <title>AJIAN — Developer / Builder / Furry</title>
+    <meta
+      name="description"
+      content="AJIAN 的个人数字空间：安静地做东西。GitHub 项目档案、开发笔记与在线小工具。Building things quietly."
+    />
+    <meta name="author" content="AJIAN" />
+    <link rel="canonical" href="https://ajian.dev/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="AJIAN" />
+    <meta property="og:title" content="AJIAN — Developer / Builder / Furry" />
+    <meta
+      property="og:description"
+      content="安静地做东西。GitHub 项目档案、开发笔记与在线小工具。"
+    />
+    <meta property="og:url" content="https://ajian.dev/" />
+    <meta property="og:image" content="https://ajian.dev/og-cover.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="AJIAN — Developer / Builder / Furry" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AJIAN — Developer / Builder / Furry" />
+    <meta
+      name="twitter:description"
+      content="安静地做东西。GitHub 项目档案、开发笔记与在线小工具。"
+    />
+
+    <!-- favicon: 极简兽耳轮廓 -->
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23F3EEDF'/%3E%3Cpath d='M8 20.5C8 15.8 11.6 12 16 12s8 3.8 8 8.5' fill='none' stroke='%238F887A' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath d='M9.2 14.6 8.6 8.9c-.1-.9.9-1.4 1.5-.8l3.6 3.4' fill='none' stroke='%238F887A' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cpath d='M22.8 14.6l.6-5.7c.1-.9-.9-1.4-1.5-.8l-3.6 3.4' fill='none' stroke='%238F887A' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23F3EEDF'/%3E%3Cpath d='M8 20.5C8 15.8 11.6 12 16 12s8 3.8 8 8.5' fill='none' stroke='%238F887A' stroke-width='1.6'/%3E%3C/svg%3E"
+    />
+
+    <script>
+      // 在样式加载前同步应用主题，避免首屏闪烁
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('ajian-theme')
+          var theme =
+            stored === 'light' || stored === 'dark'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+          document.documentElement.setAttribute('data-theme', theme)
+        } catch (e) {
+          /* 忽略隐私模式下的异常 */
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <noscript>
+      <p style="font-family: sans-serif; padding: 24px">
+        AJIAN 的个人网站需要启用 JavaScript 才能浏览。
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

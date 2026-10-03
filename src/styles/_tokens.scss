@@ -1,0 +1,138 @@
+// ─────────────────────────────────────────────
+// 设计令牌 · 暖米白 + 灰棕 + 深灰
+// 所有颜色均通过 CSS 变量输出，主题切换只替换变量
+// ─────────────────────────────────────────────
+
+:root,
+:root[data-theme='light'] {
+  --bg: #f3eedf;
+  --surface: #faf9f5;
+  --surface-secondary: #f1eee6;
+  --surface-sunken: #ece7db;
+  --overlay: rgba(53, 53, 53, 0.36);
+
+  --text-primary: #353535;
+  --text-secondary: #85827b;
+  --text-tertiary: #aaa69d;
+
+  --border: #ddd8cd;
+  --border-light: #e8e4db;
+
+  --accent: #8f887a;
+  --accent-dark: #625c52;
+  --accent-soft: rgba(143, 136, 122, 0.12);
+
+  --shadow: rgba(60, 55, 45, 0.08);
+  --shadow-strong: rgba(60, 55, 45, 0.14);
+
+  --code-bg: #efeade;
+  --code-border: #e2dccd;
+  --skeleton-a: #ece7db;
+  --skeleton-b: #f6f3ea;
+
+  --success: #6f7f5f;
+  --danger: #a2685c;
+  --warn: #a08a5c;
+
+  --paper-line: rgba(143, 136, 122, 0.08);
+
+  // 兽人背景在深色底上会自然读作浅色线稿，浅色主题下按原示意图强度呈现
+  --background-blend: normal;
+}
+
+// ── 统一的 Background System（规范 §36）──
+// 所有页面共享同一套背景接口，由 <SiteBackground> 统一消费。
+// variant 只覆盖这些变量，不改变角色本身的视觉风格（规范 §37）。
+:root {
+  --background-color: var(--bg);
+  --background-image: none;
+  --background-opacity: 0.16;
+  --background-position: right bottom;
+  --background-left: auto;
+  --background-right: 0;
+  --background-bottom: 0;
+  --background-height: 100%;
+  --background-origin: 88% 96%;
+
+  --background-mask-default: radial-gradient(
+    118% 96% at 74% 44%,
+    #000 0%,
+    rgba(0, 0, 0, 0.6) 46%,
+    transparent 80%
+  );
+  --background-mask-project: radial-gradient(110% 92% at 78% 40%, #000 0%, transparent 76%);
+  --background-mask-notes: radial-gradient(104% 88% at 82% 38%, #000 0%, transparent 72%);
+  --background-mask-tools: radial-gradient(96% 84% at 84% 46%, #000 0%, transparent 70%);
+  --background-mask-about: radial-gradient(
+    120% 98% at 76% 42%,
+    #000 0%,
+    rgba(0, 0, 0, 0.5) 50%,
+    transparent 82%
+  );
+}
+
+:root[data-theme='dark'] {
+  --bg: #20201f;
+  --surface: #292928;
+  --surface-secondary: #323231;
+  --surface-sunken: #262625;
+  --overlay: rgba(0, 0, 0, 0.58);
+
+  --text-primary: #ebe7dd;
+  --text-secondary: #a7a299;
+  --text-tertiary: #77736a;
+
+  --border: #403f3b;
+  --border-light: #353532;
+
+  --accent: #aba292;
+  --accent-dark: #c6bdac;
+  --accent-soft: rgba(171, 162, 146, 0.14);
+
+  --shadow: rgba(0, 0, 0, 0.28);
+  --shadow-strong: rgba(0, 0, 0, 0.42);
+
+  --code-bg: #262625;
+  --code-border: #3a3936;
+  --skeleton-a: #2c2c2b;
+  --skeleton-b: #353533;
+
+  --success: #909f7c;
+  --danger: #c08a7c;
+  --warn: #bfa877;
+
+  --paper-line: rgba(235, 231, 221, 0.05);
+}
+
+// ── 与主题无关的常量 ──
+:root {
+  --font-sans: Inter, 'Noto Sans SC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --sidebar-w: 228px;
+  --content-max: 1400px;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 480ms;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  // 极低对比度的纸张纹理：细点阵，不使用图片资源
+  --paper-dots: radial-gradient(circle at 1px 1px, var(--paper-line) 1px, transparent 0);
+}
