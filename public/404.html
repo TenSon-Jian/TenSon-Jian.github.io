@@ -30,7 +30,7 @@
       这里把「应用内部路由」搬到 ?p= 参数并跳回站点根目录，再由 index.html 里的还原脚本
       用 history.replaceState 改写回真实路径。
 
-      __BASE_PATH__ 会被 vite.config.ts 的 injectBasePath 插件替换成实际 base
+      __BASE_PATH__ 会被 vite.config.ts 的 injectSiteMeta 插件替换成实际 base
       （用户站点为 '/'，项目页为 '/<repo>/'），与 vue-router 的 BASE_URL 保持一致。
       之所以不在运行时"猜"部署形态：/projects/rms 与项目站点的 /projects/... 在 URL 上
       完全无法区分，只能靠构建期注入。

@@ -11,7 +11,7 @@ export const siteConfig = {
   tagline: 'Building things quietly.',
   role: 'Developer / Builder / Student',
   description: '安静地做东西。GitHub 项目档案、开发笔记与在线小工具。',
-  url: import.meta.env.VITE_SITE_URL || 'https://ajian.dev',
+  url: import.meta.env.VITE_SITE_URL || 'https://tenson-jian.github.io',
   email: '1216800668a@gmail.com',
   links: {
     github: 'https://github.com/TenSon-Jian',

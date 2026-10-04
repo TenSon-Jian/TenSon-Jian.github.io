@@ -38,7 +38,8 @@ VITE_GITHUB_USERNAME=TenSon-Jian
 VITE_GITHUB_TOKEN=
 # auto（默认，快照优先）| live（总是实时）| snapshot（只用快照，零请求）
 VITE_GITHUB_MODE=auto
-VITE_SITE_URL=https://ajian.dev
+# 站点规范地址：注入 index.html 的 canonical / og:url / og:image
+VITE_SITE_URL=https://tenson-jian.github.io
 ```
 
 > 不配置也能运行：GitHub 数据会按「构建快照 → 缓存 → 网络 → 陈旧缓存 → 内置回退数据」的顺序降级，
@@ -83,13 +84,18 @@ git push pages main
 - **base 路径**。用户站点部署在根路径，`base = '/'`，与代码默认值一致，**无需任何配置**。
   若改部署到项目页（`<user>.github.io/<repo>/`），需设置构建环境变量 `VITE_BASE_PATH=/<repo>/`，
   该值会同时注入 `index.html`、`public/404.html` 与 vue-router 的 `BASE_URL`。
+- **规范地址**。`index.html` 的 canonical / og:url / og:image 以及 `siteConfig.url` 都取自
+  `VITE_SITE_URL`（默认 `https://tenson-jian.github.io`）。换绑域名时只需设置这一个变量，
+  无需改 HTML —— 见下方「自定义域名」。
 - **SPA 深链**。路由是 history 模式，直接访问 `/projects/rms` 会命中 [public/404.html](./public/404.html)：
   它把原始路由暂存到 `?p=` 再跳回根目录，由 `index.html` 的还原脚本改写回真实地址，因此刷新深链不会 404。
 - **构建期快照**。CI 里没有 `.env`，默认账号取自 `src/config/site.ts`。想让线上抓到真实数据，
   在仓库 **Settings → Secrets and variables → Actions** 配置 `VITE_GITHUB_USERNAME`（目标账号）与可选的
   `SNAPSHOT_TOKEN`（PAT，提高抓取成功率）。不配置也能发布：快照抓不到时退回内置回退数据，构建不会失败。
-- **自定义域名**。本仓库**不含 CNAME 文件**。若要让 `ajian.dev` 指向此站点，请先确认域名 DNS 已指向
-  GitHub Pages，再到 Settings → Pages → Custom domain 填写 —— 顺序反了会导致 `tenson-jian.github.io` 也打不开。
+- **自定义域名**。本仓库**不含 CNAME 文件**。当前规范地址是 `https://tenson-jian.github.io`。
+  若要改用 `ajian.dev`：先确认域名 DNS 已指向 GitHub Pages，再到 Settings → Pages → Custom domain
+  填写 —— 顺序反了会导致 `tenson-jian.github.io` 也打不开；最后设置构建环境变量
+  `VITE_SITE_URL=https://ajian.dev`（仓库 Variables 或工作流 env），让 canonical 一并切换。
 
 ## 信息架构
 
