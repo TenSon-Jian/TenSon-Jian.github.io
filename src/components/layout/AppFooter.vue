@@ -14,7 +14,7 @@ const year = siteConfig.copyrightYear
           <Github :size="15" :stroke-width="1.7" aria-hidden="true" />
           <span>GitHub</span>
         </a>
-        <a :href="siteConfig.links.x" target="_blank" rel="noopener noreferrer">X / Twitter</a>
+        <a :href="siteConfig.links.bilibili" target="_blank" rel="noopener noreferrer">Bilibili</a>
         <a :href="`mailto:${siteConfig.email}`">Email</a>
       </nav>
 

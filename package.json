@@ -5,7 +5,7 @@
   "type": "module",
   "description": "AJIAN — 极简个人博客 / GitHub 作品集网站",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite serve --host 0.0.0.0",
     "build": "vue-tsc --noEmit && vite build",
     "build:only": "vite build",
     "prebuild": "node scripts/generate-github-snapshot.mjs",

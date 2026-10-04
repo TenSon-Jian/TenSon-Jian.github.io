@@ -10,13 +10,15 @@
  * 用法：
  *   node scripts/generate-github-snapshot.mjs             # 抓取并写入
  *   node scripts/generate-github-snapshot.mjs --force     # 已有可用快照时也重新抓取
+ *   node scripts/generate-github-snapshot.mjs --strict    # 抓不到就用非零退出码让构建失败
  *   node scripts/generate-github-snapshot.mjs --max-wait=120   # 允许等配额重置最多 120 秒
  *
  * 环境变量（可写在 .env 里，本脚本会自行加载）：
  *   VITE_GITHUB_USERNAME  目标账号，默认取 .env 中的值
  *   GITHUB_TOKEN / VITE_GITHUB_TOKEN  可选；有 token 时配额 5000 次/小时且请求不计费
  *
- * 退出码：0 表示快照可用（新抓取成功，或沿用既有快照）；1 表示抓取失败且无既有快照。
+ * 退出码：默认 0 —— 抓不到快照不算构建失败，站点会退回内置回退数据照常发布。
+ * 加 --strict 后抓不到即返回 1，适合"没有真实数据就不许发布"的场景。
  */
 
 import { readFile, writeFile } from 'node:fs/promises'
@@ -41,10 +43,12 @@ function loadEnvFile() {
 
 function parseArgs(argv) {
   const force = argv.includes('--force')
+  const strict = argv.includes('--strict')
   const maxWaitArg = argv.find((arg) => arg.startsWith('--max-wait='))
   const maxWait = maxWaitArg ? Number(maxWaitArg.split('=')[1]) : 15
   return {
     force,
+    strict,
     maxWait: Number.isFinite(maxWait) && maxWait >= 0 ? maxWait : 15,
   }
 }
@@ -192,14 +196,21 @@ async function readExisting() {
 
 async function main() {
   loadEnvFile()
-  const { force, maxWait } = parseArgs(process.argv.slice(2))
+  const { force, strict, maxWait } = parseArgs(process.argv.slice(2))
   const username = process.env.VITE_GITHUB_USERNAME || 'ajian'
 
   const existing = await readExisting()
   if (existing && !force) {
-    console.log(`[snapshot] 已存在可用快照（${existing.generatedAt}，${existing.repos.length} 个仓库），跳过抓取。`)
-    console.log('[snapshot] 需要刷新请加 --force。')
-    return
+    // 目标账号变了就必须重新抓取：否则会把上一个账号的数据发到线上
+    if (existing.username !== username) {
+      console.warn(
+        `[snapshot] 既有快照属于账号 ${existing.username}，与当前目标 ${username} 不一致，将重新抓取。`,
+      )
+    } else {
+      console.log(`[snapshot] 已存在可用快照（${existing.generatedAt}，${existing.repos.length} 个仓库），跳过抓取。`)
+      console.log('[snapshot] 需要刷新请加 --force。')
+      return
+    }
   }
 
   console.log(`[snapshot] 抓取 GitHub 数据：${username}`)
@@ -255,8 +266,16 @@ async function main() {
       return
     }
     console.warn(`[snapshot] 抓取失败且没有既有快照：${error.message}`)
-    console.warn('[snapshot] 站点将退回内置回退数据。配置 GITHUB_TOKEN 可显著提高成功率。')
-    process.exitCode = 1
+    console.warn('[snapshot] 站点将退回内置回退数据（页面不会白屏）。配置 GITHUB_TOKEN 可显著提高成功率。')
+
+    // 默认不让构建失败：CI 里没有 token、或账号暂无公开仓库时，
+    // 站点用内置回退数据照样能正常发布。需要"抓不到就失败"请加 --strict。
+    if (strict) {
+      console.warn('[snapshot] 已启用 --strict，按失败处理。')
+      process.exitCode = 1
+    } else {
+      console.warn('[snapshot] 继续构建；若希望此处失败请加 --strict。')
+    }
   }
 }
 

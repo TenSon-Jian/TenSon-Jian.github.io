@@ -62,6 +62,35 @@ npm run build      # prebuild 会自动抓取（已有可用快照则跳过）
 - 抓取时设置 `GITHUB_TOKEN`（或 `VITE_GITHUB_TOKEN`）可把配额提到 5000 次/小时，成功率更高。
 - 想让本地开发始终看到实时数据：把 `VITE_GITHUB_MODE` 设为 `live`。
 
+## 部署到 GitHub Pages
+
+仓库已包含 [`.github/workflows/deploy-pages.yml`](./.github/workflows/deploy-pages.yml)，推送到 `main` 即自动构建并发布。
+
+**目标：用户站点 `https://tenson-jian.github.io/`**（仓库名必须是 `<用户名>.github.io`）
+
+```bash
+# 本地已配好名为 pages 的 remote
+git add -A
+git commit -m "deploy: github pages"
+git push pages main
+```
+
+首次推送后，到仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**
+（不是 "Deploy from a branch"）。
+
+要点：
+
+- **base 路径**。用户站点部署在根路径，`base = '/'`，与代码默认值一致，**无需任何配置**。
+  若改部署到项目页（`<user>.github.io/<repo>/`），需设置构建环境变量 `VITE_BASE_PATH=/<repo>/`，
+  该值会同时注入 `index.html`、`public/404.html` 与 vue-router 的 `BASE_URL`。
+- **SPA 深链**。路由是 history 模式，直接访问 `/projects/rms` 会命中 [public/404.html](./public/404.html)：
+  它把原始路由暂存到 `?p=` 再跳回根目录，由 `index.html` 的还原脚本改写回真实地址，因此刷新深链不会 404。
+- **构建期快照**。CI 里没有 `.env`，默认账号取自 `src/config/site.ts`。想让线上抓到真实数据，
+  在仓库 **Settings → Secrets and variables → Actions** 配置 `VITE_GITHUB_USERNAME`（目标账号）与可选的
+  `SNAPSHOT_TOKEN`（PAT，提高抓取成功率）。不配置也能发布：快照抓不到时退回内置回退数据，构建不会失败。
+- **自定义域名**。本仓库**不含 CNAME 文件**。若要让 `ajian.dev` 指向此站点，请先确认域名 DNS 已指向
+  GitHub Pages，再到 Settings → Pages → Custom domain 填写 —— 顺序反了会导致 `tenson-jian.github.io` 也打不开。
+
 ## 信息架构
 
 ```

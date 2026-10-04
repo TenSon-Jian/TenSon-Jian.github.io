@@ -48,6 +48,29 @@
     />
 
     <script>
+      // GitHub Pages 深链还原。
+      // public/404.html 把原始路径暂存在 ?p= 上再跳回根目录，这里改写回真实地址，
+      // 交给 vue-router 正常解析，避免刷新 /projects/xxx 时被当成首页。
+      ;(function () {
+        try {
+          var params = new URLSearchParams(window.location.search)
+          var target = params.get('p')
+          if (!target || !target.startsWith('/')) return
+
+          params.delete('p')
+          var rest = params.toString()
+          window.history.replaceState(
+            null,
+            '',
+            target + (rest ? '?' + rest : '') + window.location.hash,
+          )
+        } catch (e) {
+          /* 出错时保持原样，最坏情况是回到首页 */
+        }
+      })()
+    </script>
+
+    <script>
       // 在样式加载前同步应用主题，避免首屏闪烁
       ;(function () {
         try {

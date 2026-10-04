@@ -128,7 +128,7 @@ function observeSections() {
     },
     { rootMargin: '-140px 0px -60% 0px', threshold: 0 },
   )
-  for (const item of sections.value) {
+  for (const item of sections) {
     const el = document.getElementById(item.id)
     if (el) observer.observe(el)
   }
