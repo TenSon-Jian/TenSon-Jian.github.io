@@ -15,18 +15,19 @@ index.html
         └─ main.ts
              ├─ initTheme()                       ← composables/useTheme.ts
              ├─ createApp(App)  →  App.vue         ← 外壳：Sidebar / Topbar / 背景 / 路由出口 / Footer
-             ├─ use(createPinia())                 ← stores/
              ├─ use(router)                        ← router/index.ts
              └─ mount('#app')
 ```
 
-三个全局单例：
+两个全局单例：
 
 | 单例 | 文件 | 作用 |
 | --- | --- | --- |
 | 主题 | `src/composables/useTheme.ts` | 模块级 `ref`，`data-theme` 写到 `<html>`，同时校正 `meta[name=theme-color]` |
-| GitHub 数据 | `src/stores/github.ts` | Pinia store，页面只读它，不直接发请求 |
 | 路由 | `src/router/index.ts` | 懒加载页面 + 每页 `title/description/canonical/OG` |
+
+> 站点没有数据 store：所有内容都是 `src/data/` 下的静态模块，构建时直接打进产物，
+> 因此也没有任何运行时请求、加载态或失败态。
 
 ---
 
@@ -35,16 +36,14 @@ index.html
 ```
 views/*.vue           页面：布局、交互、组合
    │  只读
-   ├─→ stores/github.ts        唯一的数据状态源
-   │        └─→ services/github.ts   唯一网络出口 → localStorage 缓存 → data/fallback.ts 兜底
-   ├─→ components/**           展示组件（props 进、事件出，不发请求）
+   ├─→ components/**           展示组件（props 进、事件出）
    ├─→ composables/**          useTheme / useReveal
    └─→ data/** + utils/**      静态内容与纯函数
 config/site.ts          站点级配置（谁都可以读）
-types/index.ts          所有共享类型（Project / Note / Github* / DataSource）
+types/index.ts          所有共享类型（Project / Note / Architecture*）
 ```
 
-规则：**只有 `services/github.ts` 发请求；只有 `data/` 放内容；`utils/` 保持纯函数。**
+规则：**只有 `data/` 放内容；`utils/` 保持纯函数；页面不发任何网络请求。**
 
 ---
 
@@ -55,7 +54,7 @@ ajian-blog/
 ├── index.html                 主题引导 + SEO/OG + favicon（data URI）
 ├── vite.config.ts             @ → src 别名、SCSS modern-compiler、vendor 手动分包
 ├── tsconfig.json              严格模式；noUnusedLocals/Parameters 打开
-├── .env.example               VITE_GITHUB_USERNAME / VITE_GITHUB_TOKEN / VITE_SITE_URL
+├── .env.example               VITE_SITE_URL
 ├── public/
 │   └── og-cover.png           社交分享大图（原样拷贝，不做 hash）
 └── src/
@@ -98,14 +97,12 @@ ajian-blog/
     │   └── site.ts             站点名/角色/标语/邮箱/社交链接 + 导航项 navItems
     │
     ├── data/
-    │   ├── fallback.ts         ★ 项目档案（Project[]）+ GitHub 离线回退数据（profile/repos/stats）
+    │   ├── projects.ts         ★ 项目档案（Project[]），全站唯一项目数据源
     │   ├── notes.ts            ★ 笔记元数据 + 注册 .md 正文（读 `?raw`）
     │   ├── notes/*.md          6 篇 Markdown 正文
     │   └── tools.ts            8 个工具的元数据（id/名称/描述/路径/图标）
     │
     ├── router/index.ts         路由表 + afterEach 写 SEO
-    ├── services/github.ts      唯一 GitHub 出口：超时、缓存、降级、速率限制处理
-    ├── stores/github.ts        Pinia：profile/repos/stats/events + loading/error/source
     │
     ├── styles/
     │   ├── main.scss           只做 @use 汇总
@@ -114,7 +111,7 @@ ajian-blog/
     │   └── _utilities.scss     全局工具类（.page/.section/.surface-card/.skeleton/.reveal…）
     │
     ├── types/
-    │   ├── index.ts            Project / ProjectFeature / Architecture* / Note / Github* / DataSource
+    │   ├── index.ts            Project / ProjectFeature / Architecture* / Note
     │   └── ui.ts               ButtonVariant
     │
     ├── utils/
@@ -213,19 +210,19 @@ ajian-blog/
 
 ## 7. 内容与数据维护
 
-### 项目档案（`data/fallback.ts` → `projects`）
+### 项目档案（`data/projects.ts` → `projects`）
 
 字段定义见 `types/index.ts` 的 `Project`：
 
 ```ts
-{ id, name, slug, description, language?, technologies[], stars?, forks?, updatedAt?,
+{ id, name, slug, description, language?, technologies[],
   repositoryUrl, demoUrl?, cover?, featured?,
   type?, period?, overview?, highlights?[], features?[], architecture? }
 ```
 
 - `featured: true` 的项目才会出现在首页（`HomeView` 里 `slice(0, 3)`）。
 - `architecture` 决定项目详情页的架构图；`features` 决定功能清单。两者缺省时页面会显示空状态而不是隐藏整段。
-- 同一文件里还有 GitHub 离线回退数据：`fallbackProfile` / `fallbackRepos` / `fallbackStats`（`18 / 42 / 36`，对应设计稿）。
+- 首页的统计数字（Projects / Notes / Tools）由这几份数据文件现算，不要写死。
 
 ### 笔记（`data/notes/` + `data/notes.ts`）
 
@@ -247,16 +244,16 @@ ajian-blog/
 | --- | --- | --- |
 | 站点名 / 角色 / 标语 / 邮箱 / 社交链接 | `src/config/site.ts` | `siteConfig` |
 | 侧边导航项与顺序 | `src/config/site.ts` | `navItems`，`icon` 是 `icons.ts` 里的 key |
-| GitHub 用户名 / Token | `.env`（复制 `.env.example`） | `VITE_GITHUB_USERNAME` / `VITE_GITHUB_TOKEN` |
+| 站点规范地址（canonical / og:url） | `.env`（复制 `.env.example`） | `VITE_SITE_URL` |
 | 主题色 / 间距 / 圆角 / 动效时长 | `src/styles/_tokens.scss` | 浅色与深色各一块 |
 | 背景兽人浓淡 / 位置 / 裁切 | `src/components/brand/SiteBackground.vue` | `.site-bg--<variant>` |
 | 背景素材本体 | `src/assets/orc-*.png` | 直接覆盖文件，注意底色契约 |
 | 首页 Hero 文案 / 按钮 | `src/views/HomeView.vue` | template 最上方 |
 | 首页 Hero 高度与文字栏宽度 | `HomeView.vue` | `.hero { min-height }` / `.hero__text { max-width }` |
 | 首页显示几个精选项目 | `HomeView.vue` | `featured` 里的 `.slice(0, 3)` |
-| 项目档案内容 | `src/data/fallback.ts` | `projects` 数组 |
+| 项目档案内容 | `src/data/projects.ts` | `projects` 数组 |
 | 项目详情页的章节与顺序 | `src/views/ProjectDetailView.vue` | `sections` 常量 + 对应 `<section>` |
-| 架构图节点/连线 | `src/data/fallback.ts` → `architecture` | 渲染在 `components/project/ArchitectureDiagram.vue` |
+| 架构图节点/连线 | `src/data/projects.ts` → `architecture` | 渲染在 `components/project/ArchitectureDiagram.vue` |
 | 文章正文 | `src/data/notes/*.md` | |
 | 新增文章 | `src/data/notes/` + `src/data/notes.ts` | 见第 7 节 |
 | 工具清单 / 描述 / 图标 | `src/data/tools.ts` | |

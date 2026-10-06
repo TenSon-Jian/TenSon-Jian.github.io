@@ -18,7 +18,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ProjectsView.vue'),
     meta: {
       title: 'Projects — AJIAN',
-      description: 'Selected works & experiments. GitHub 驱动项目档案。',
+      description: 'Selected works & experiments. 来自本地项目档案。',
     },
   },
   {

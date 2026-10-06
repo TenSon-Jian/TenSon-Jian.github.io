@@ -1,123 +1,7 @@
-import type { GithubProfile, GithubRepo, GithubStats, Project } from '@/types'
-
-/**
- * 离线回退数据。
- * GitHub API 不可用（公司网络拦截 / 速率限制 / 离线）时，
- * 网站依然使用这份数据完整呈现，不会白屏。
- */
-
-export const fallbackProfile: GithubProfile = {
-  login: 'ajian',
-  name: 'AJIAN',
-  avatar_url: '',
-  bio: 'Developer / Builder / Student — Building things quietly.',
-  company: null,
-  location: 'China',
-  blog: 'https://ajian.dev',
-  html_url: 'https://github.com/ajian',
-  public_repos: 18,
-  followers: 36,
-  following: 24,
-}
-
-/**
- * 离线统计值 = 设计稿中的固定数值（示意图与规范第 11 节：18 / 42 / 36）。
- * 联网时统计值由 GitHub API 实时汇总，不再使用这里的数字。
- */
-export const fallbackStats: GithubStats = {
-  repositories: fallbackProfile.public_repos,
-  stars: 42,
-  followers: fallbackProfile.followers,
-  following: fallbackProfile.following,
-}
-
-function repo(input: Partial<GithubRepo> & { name: string }): GithubRepo {
-  const now = new Date('2026-09-15T10:00:00Z')
-  const daysAgo = (n: number) => new Date(now.getTime() - n * 86400000).toISOString()
-  return {
-    id: Math.abs(hash(input.name)),
-    full_name: `ajian/${input.name}`,
-    description: null,
-    html_url: `https://github.com/ajian/${input.name}`,
-    homepage: null,
-    language: null,
-    stargazers_count: 0,
-    forks_count: 0,
-    watchers_count: 0,
-    topics: [],
-    created_at: daysAgo(400),
-    updated_at: daysAgo(3),
-    pushed_at: daysAgo(3),
-    fork: false,
-    archived: false,
-    size: 2048,
-    ...input,
-  } as GithubRepo
-}
-
-function hash(value: string): number {
-  let h = 0
-  for (let i = 0; i < value.length; i += 1) {
-    h = (h << 5) - h + value.charCodeAt(i)
-    h |= 0
-  }
-  return h
-}
-
-export const fallbackRepos: GithubRepo[] = [
-  repo({
-    name: 'RMS',
-    description:
-      'Restaurant Management System — 一套面向中小型餐饮门店的综合管理系统，覆盖点餐、库存、采购与财务。',
-    language: 'Java',
-    stargazers_count: 32,
-    forks_count: 12,
-    topics: ['spring-boot', 'vue', 'mysql', 'redis', 'mybatis'],
-  }),
-  repo({
-    name: 'library-system',
-    description: '图书借阅管理系统，支持借还、预约、逾期提醒与馆藏统计。',
-    language: 'Java',
-    stargazers_count: 11,
-    forks_count: 4,
-    topics: ['spring-boot', 'mybatis', 'vue'],
-  }),
-  repo({
-    name: 'game-forum',
-    description: '一个小型游戏社区论坛，支持发帖、评论、标签与图片上传。',
-    language: 'Vue',
-    stargazers_count: 7,
-    forks_count: 2,
-    topics: ['vue', 'nodejs', 'oss'],
-  }),
-  repo({
-    name: 'qiwo-admin',
-    description: '后台管理系统模板：权限、菜单、表单与图表开箱即用。',
-    language: 'TypeScript',
-    stargazers_count: 9,
-    forks_count: 3,
-    topics: ['vue3', 'typescript', 'vite'],
-  }),
-  repo({
-    name: 'ajian-blog',
-    description: '本站源码：极简个人博客与 GitHub 作品集，Vue 3 + Vite。',
-    language: 'TypeScript',
-    stargazers_count: 5,
-    forks_count: 1,
-    topics: ['vue3', 'blog', 'github-api'],
-  }),
-  repo({
-    name: 'tiny-tools',
-    description: '纯前端小工具箱：JSON、颜色、时间戳、Base64、正则。',
-    language: 'TypeScript',
-    stargazers_count: 4,
-    forks_count: 0,
-    topics: ['tools', 'frontend'],
-  }),
-]
+import type { Project } from '@/types'
 
 // ─────────────────────────────────────────────
-// 项目档案（详情页使用的静态资料，与 GitHub 数据互补）
+// 项目档案（全站唯一的项目数据源）
 // ─────────────────────────────────────────────
 
 export const projects: Project[] = [
@@ -129,9 +13,6 @@ export const projects: Project[] = [
       'A lightweight restaurant management system for small and medium-sized restaurants.',
     language: 'Java',
     technologies: ['Spring Boot', 'Vue', 'MySQL', 'MyBatis-Plus', 'Redis'],
-    stars: 32,
-    forks: 12,
-    updatedAt: '2026-09-12T08:00:00Z',
     repositoryUrl: 'https://github.com/ajian/RMS',
     demoUrl: 'https://demo.ajian.dev/rms',
     featured: true,
@@ -188,9 +69,6 @@ export const projects: Project[] = [
       'Library management system with borrowing, reservation and overdue notification.',
     language: 'Java',
     technologies: ['Spring Boot', 'MyBatis', 'Vue', 'MySQL'],
-    stars: 11,
-    forks: 4,
-    updatedAt: '2026-08-02T08:00:00Z',
     repositoryUrl: 'https://github.com/ajian/library-system',
     featured: true,
     type: '全栈 · 课程设计',
@@ -229,9 +107,6 @@ export const projects: Project[] = [
     description: 'A small community forum for players — posts, comments, tags and uploads.',
     language: 'Vue',
     technologies: ['Vue', 'Node.js', 'MySQL', 'OSS'],
-    stars: 7,
-    forks: 2,
-    updatedAt: '2026-07-18T08:00:00Z',
     repositoryUrl: 'https://github.com/ajian/game-forum',
     featured: true,
     type: '全栈 · 个人项目',
@@ -269,9 +144,6 @@ export const projects: Project[] = [
     description: 'An admin dashboard starter with auth, menus, forms and charts.',
     language: 'TypeScript',
     technologies: ['Vue 3', 'TypeScript', 'Vite', 'Pinia'],
-    stars: 9,
-    forks: 3,
-    updatedAt: '2026-05-21T08:00:00Z',
     repositoryUrl: 'https://github.com/ajian/qiwo-admin',
     type: '前端 · 开源模板',
     period: '2025.08 — 2025.10',
@@ -297,37 +169,34 @@ export const projects: Project[] = [
     id: 'ajian-blog',
     name: '本站 · AJIAN Blog',
     slug: 'ajian-blog',
-    description: 'This site — a quiet personal blog and GitHub portfolio built with Vue 3 + Vite.',
+    description: 'This site — a quiet personal blog and portfolio built with Vue 3 + Vite.',
     language: 'TypeScript',
-    technologies: ['Vue 3', 'TypeScript', 'Vite', 'GitHub API'],
-    stars: 5,
-    forks: 1,
-    updatedAt: '2026-09-18T08:00:00Z',
+    technologies: ['Vue 3', 'TypeScript', 'Vite', 'SCSS'],
     repositoryUrl: 'https://github.com/ajian/ajian-blog',
     demoUrl: 'https://ajian.dev',
     type: '前端 · 个人项目',
     period: '2026.09 — 至今',
     overview:
-      '你现在看到的这个网站。极简的排版、克制的动效、GitHub 数据驱动的项目档案，以及一套纯前端的小工具。',
-    highlights: ['GitHub API + 本地缓存 + 离线回退', '纯前端工具箱，输入不出浏览器', '亮暗主题与移动端适配'],
+      '你现在看到的这个网站。极简的排版、克制的动效、档案式的项目展示，以及一套纯前端的小工具。',
+    highlights: ['纯前端工具箱，输入不出浏览器', '亮暗主题与移动端适配', '零后端依赖，静态部署'],
     features: [
       { no: '01', title: '作品集', summary: '项目档案式列表与详情页。' },
       { no: '02', title: 'Notes', summary: 'Markdown 笔记与全文搜索。' },
       { no: '03', title: '工具箱', summary: '八个常用开发小工具。' },
-      { no: '04', title: 'GitHub 同步', summary: '仓库、星标与动态数据。' },
+      { no: '04', title: '架构图', summary: '项目分层与依赖的可视化。' },
     ],
     architecture: {
       layers: [
         { id: 'client', label: 'Client', kind: 'client', nodes: [{ id: 'vue', label: 'Vue 3', connectsTo: ['router'] }] },
-        { id: 'gateway', label: 'App', kind: 'api', nodes: [{ id: 'router', label: 'Vue Router', connectsTo: ['service'] }] },
-        { id: 'service', label: 'Service', kind: 'service', nodes: [{ id: 'service', label: 'githubService', connectsTo: ['cache', 'gh'] }] },
+        { id: 'gateway', label: 'App', kind: 'api', nodes: [{ id: 'router', label: 'Vue Router', connectsTo: ['data'] }] },
+        { id: 'service', label: 'Data', kind: 'service', nodes: [{ id: 'data', label: '静态数据模块', connectsTo: ['assets'] }] },
         {
           id: 'data',
-          label: 'Data',
+          label: 'Assets',
           kind: 'data',
           nodes: [
-            { id: 'gh', label: 'GitHub API' },
-            { id: 'cache', label: 'Local Cache' },
+            { id: 'assets', label: 'Markdown / TS' },
+            { id: 'canvas', label: 'Canvas 生成封面' },
           ],
         },
       ],
@@ -340,9 +209,6 @@ export const projects: Project[] = [
     description: 'Browser-only developer utilities: JSON, color, timestamp, base64, regex.',
     language: 'TypeScript',
     technologies: ['TypeScript', 'Vite', 'Canvas API'],
-    stars: 4,
-    forks: 0,
-    updatedAt: '2026-09-20T08:00:00Z',
     repositoryUrl: 'https://github.com/ajian/tiny-tools',
     type: '前端 · 实验',
     period: '2026.07 — 2026.08',

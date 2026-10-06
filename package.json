@@ -3,19 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "AJIAN — 极简个人博客 / GitHub 作品集网站",
+  "description": "AJIAN — 极简个人博客 / 项目档案 / 在线工具箱",
   "scripts": {
     "dev": "vite serve --host 0.0.0.0",
     "build": "vue-tsc --noEmit && vite build",
     "build:only": "vite build",
-    "prebuild": "node scripts/generate-github-snapshot.mjs",
-    "snapshot": "node scripts/generate-github-snapshot.mjs --force",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "lucide-vue-next": "^0.469.0",
-    "pinia": "^2.3.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },

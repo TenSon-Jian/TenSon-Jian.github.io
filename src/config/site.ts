@@ -4,13 +4,9 @@
 
 export const siteConfig = {
   name: 'AJIAN',
-  /** GitHub 用户名：可在 .env 中用 VITE_GITHUB_USERNAME 覆盖 */
-  githubUsername: import.meta.env.VITE_GITHUB_USERNAME || 'TenSon-Jian',
-  /** 可选的 Personal Access Token，仅用于提升 API 速率限制 */
-  githubToken: import.meta.env.VITE_GITHUB_TOKEN || '',
   tagline: 'Building things quietly.',
   role: 'Developer / Builder / Student',
-  description: '安静地做东西。GitHub 项目档案、开发笔记与在线小工具。',
+  description: '安静地做东西。项目档案、开发笔记与在线小工具。',
   url: import.meta.env.VITE_SITE_URL || 'https://tenson-jian.github.io',
   email: '1216800668a@gmail.com',
   links: {

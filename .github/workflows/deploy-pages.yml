@@ -36,15 +36,10 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Build
-        # 仓库 Secrets 里配置后，构建期快照会抓真实数据：
-        #   VITE_GITHUB_USERNAME  目标账号（不配则用代码里的默认值）
-        #   SNAPSHOT_TOKEN        可选 PAT，仅用于提升抓取成功率（5000 次/小时）
-        # 都不配也能构建：快照抓不到时会退回内置回退数据，不影响发布。
+        # 站点内容全部来自仓库内的静态数据，构建不需要任何凭据。
         # VITE_SITE_URL 取自仓库 Variables，用于生成 canonical / og:url；
         # 未配置时回退到 vite.config.ts 里的默认值 https://tenson-jian.github.io
         env:
-          VITE_GITHUB_USERNAME: ${{ secrets.VITE_GITHUB_USERNAME }}
-          GITHUB_TOKEN: ${{ secrets.SNAPSHOT_TOKEN }}
           VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
         run: npm run build
 

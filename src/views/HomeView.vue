@@ -1,105 +1,34 @@
 <script setup lang="ts">
-import { onMounted, computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { AlertTriangle, ArrowUpRight, RefreshCw } from 'lucide-vue-next'
+import { ArrowUpRight } from 'lucide-vue-next'
 import { siteConfig } from '@/config/site'
-import { projects as localProjects } from '@/data/fallback'
+import { projects as localProjects } from '@/data/projects'
 import { notes } from '@/data/notes'
 import { tools } from '@/data/tools'
-import { useGithubStore } from '@/stores/github'
 import { useReveal } from '@/composables/useReveal'
 import SiteBackground from '@/components/brand/SiteBackground.vue'
 import ProjectCard from '@/components/project/ProjectCard.vue'
 import NoteRow from '@/components/note/NoteRow.vue'
 import { toolIcons } from '@/components/brand/icons'
 import type { Project } from '@/types'
-import { fallbackRepos } from '@/data/fallback'
 
-const github = useGithubStore()
 const notesReveal = useReveal<HTMLElement>()
 const toolsReveal = useReveal<HTMLElement>()
 
-onMounted(() => {
-  void github.ensureLoaded()
-})
+const featured = computed<Project[]>(() =>
+  localProjects.filter((project) => project.featured).slice(0, 3),
+)
 
-const featured = computed<Project[]>(() => {
-  // 本地档案提供中文名称与技术栈，GitHub 提供实时星标 / 更新时间
-  const byName = new Map(github.repos.map((repo) => [repo.name.toLowerCase(), repo]))
-
-  return localProjects
-    .filter((project) => project.featured)
-    .slice(0, 3)
-    .map((project) => {
-      const repoName = project.repositoryUrl.split('/').pop()?.toLowerCase() ?? project.slug
-      const live = byName.get(repoName) ?? byName.get(project.slug) ?? fallbackRepos.find((r) => r.name.toLowerCase() === repoName)
-      if (!live) return project
-      return {
-        ...project,
-        stars: live.stargazers_count,
-        forks: live.forks_count,
-        updatedAt: live.pushed_at ?? live.updated_at,
-        description: live.description ?? project.description,
-      }
-    })
-})
-
+/** 统计值全部由本地数据现算，不需要网络请求，也就没有加载态与失败态 */
 const statItems = computed(() => [
-  { value: github.stats?.repositories ?? 18, label: 'Repositories' },
-  { value: github.stats?.stars ?? 42, label: 'Stars' },
-  { value: github.stats?.followers ?? 36, label: 'Followers' },
+  { value: localProjects.length, label: 'Projects' },
+  { value: notes.length, label: 'Notes' },
+  { value: tools.length, label: 'Tools' },
 ])
 
 const latestNotes = computed(() => notes.slice(0, 3))
 const toolPreview = computed(() => tools.slice(0, 8))
-
-/** 快照生成日期，用于说明这份数据的确切新鲜度 */
-const snapshotDateLabel = ref('')
-
-watch(
-  () => github.snapshotAt,
-  (value) => {
-    snapshotDateLabel.value = value
-      ? new Date(value).toLocaleDateString('zh-CN', {
-          timeZone: 'Asia/Shanghai',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-        })
-      : ''
-  },
-  { immediate: true },
-)
-
-const sourceLabel = computed(() => {
-  if (!github.isDegraded) return null
-
-  // 快照优先说明：它既不是"过期缓存"，也不是"连不上"
-  if (github.statsSource === 'snapshot' || github.reposSource === 'snapshot') {
-    return snapshotDateLabel.value ? `数据来自构建快照 · ${snapshotDateLabel.value}` : '数据来自构建快照'
-  }
-  if (github.statsSource === 'cache' || github.reposSource === 'cache') {
-    return '数据来自本地缓存'
-  }
-  return '当前离线，显示内置档案'
-})
-
-/**
- * 重试入口的三种形态：
- *  - 冷却中：禁用并显示倒计时，因为此时点重试只会继续消耗原本就见底的配额
- *  - 冷却结束：恢复可点，让用户能手动再试一次
- *  - 非配额类失败（凭据无效 / 超时）：照旧可点，重试确实有意义
- * 只有超时或凭据问题才提示重试——限流状态下重试按钮没有意义。
- */
-const showRetry = computed(() => !github.coolingDown)
-
-const retryLabel = computed(() =>
-  github.coolingDown && github.cooldownSeconds > 0 ? `${github.cooldownSeconds}s` : '重试',
-)
-
-const retryBlockedHint = computed(() =>
-  github.coolingDown ? `GitHub 限流中，${github.cooldownSeconds} 秒后可重试` : undefined,
-)
 </script>
 
 <template>
@@ -124,49 +53,13 @@ const retryBlockedHint = computed(() =>
           <RouterLink to="/about" class="btn btn--ghost">About Me</RouterLink>
         </div>
 
-        <!-- GitHub 数据统计 -->
-        <dl class="stats" :aria-busy="github.loading">
-          <template v-if="github.loading && !github.stats">
-            <div v-for="n in 3" :key="n" class="stats__item">
-              <div class="skeleton stats__skeleton-value" />
-              <div class="skeleton stats__skeleton-label" />
-            </div>
-          </template>
-          <template v-else>
-            <div v-for="item in statItems" :key="item.label" class="stats__item fade-in">
-              <dt class="stats__value">{{ item.value }}</dt>
-              <dd class="stats__label">{{ item.label }}</dd>
-            </div>
-          </template>
+        <!-- 站点内容统计（全部由本地数据现算） -->
+        <dl class="stats">
+          <div v-for="item in statItems" :key="item.label" class="stats__item">
+            <dt class="stats__value">{{ item.value }}</dt>
+            <dd class="stats__label">{{ item.label }}</dd>
+          </div>
         </dl>
-
-        <!-- 数据来源与失败原因：来源只说「从哪来」，诊断行说清「为什么」。
-             正常情况下两项都不渲染。 -->
-        <div v-if="sourceLabel || github.error" class="stats__status">
-          <p v-if="sourceLabel" class="stats__source">
-            <RefreshCw :size="12" :stroke-width="1.8" aria-hidden="true" />
-            {{ sourceLabel }}
-          </p>
-
-          <p
-            v-if="github.error"
-            class="stats__diagnostic"
-            :class="{ 'is-warn': github.errorInfo?.rateLimited }"
-          >
-            <AlertTriangle :size="12" :stroke-width="1.8" aria-hidden="true" />
-            {{ github.error }}
-            <button
-              v-if="showRetry"
-              type="button"
-              class="stats__retry"
-              :disabled="github.coolingDown"
-              :title="retryBlockedHint"
-              @click="github.refresh()"
-            >
-              {{ retryLabel }}
-            </button>
-          </p>
-        </div>
       </div>
     </section>
 
@@ -180,25 +73,13 @@ const retryBlockedHint = computed(() =>
       </div>
 
       <div class="project-grid">
-        <template v-if="github.loading && !github.repos.length">
-          <div v-for="n in 3" :key="n" class="surface-card skeleton-card">
-            <div class="skeleton skeleton-card__cover" />
-            <div class="skeleton-card__body">
-              <div class="skeleton" style="height: 14px; width: 60%" />
-              <div class="skeleton" style="height: 10px; width: 92%" />
-              <div class="skeleton" style="height: 10px; width: 74%" />
-            </div>
-          </div>
-        </template>
-        <template v-else>
-          <ProjectCard
-            v-for="(project, index) in featured"
-            :key="project.id"
-            :project="project"
-            :index="index"
-            class="fade-in"
-          />
-        </template>
+        <ProjectCard
+          v-for="(project, index) in featured"
+          :key="project.id"
+          :project="project"
+          :index="index"
+          class="fade-in"
+        />
       </div>
     </section>
 
@@ -366,85 +247,11 @@ const retryBlockedHint = computed(() =>
   color: var(--text-tertiary);
 }
 
-.stats__skeleton-value {
-  height: 26px;
-  width: 44px;
-}
-
-.stats__skeleton-label {
-  height: 10px;
-  width: 66px;
-  margin-top: 6px;
-}
-
-.stats__status {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  margin-top: var(--space-3);
-}
-
-.stats__source {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
-  color: var(--text-tertiary);
-}
-
-/* 诊断行：把被掩盖的失败原因显式化，限流时改用警告色以区别普通错误 */
-.stats__diagnostic {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  font-size: 11.5px;
-  color: var(--danger);
-
-  svg {
-    flex: none;
-  }
-
-  &.is-warn {
-    color: var(--warn);
-  }
-}
-
-.stats__retry {
-  color: inherit;
-  font-size: 11.5px;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.65;
-    text-decoration: none;
-  }
-}
-
 // ── 项目网格 ──
 .project-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
-}
-
-.skeleton-card {
-  overflow: hidden;
-}
-
-.skeleton-card__cover {
-  aspect-ratio: 16 / 10;
-  border-radius: 0;
-}
-
-.skeleton-card__body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: var(--space-4);
 }
 
 // ── 笔记列表 ──

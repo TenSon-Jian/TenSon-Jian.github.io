@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { GitFork, Star } from 'lucide-vue-next'
 import type { Project } from '@/types'
 import { generateCover } from '@/utils/cover'
-import { formatNumber, relativeTime } from '@/utils/format'
 
 const props = defineProps<{ project: Project; index?: number }>()
 
 const cover = computed(() => props.project.cover ?? generateCover({ seed: props.project.slug }))
-const updated = computed(() => relativeTime(props.project.updatedAt))
 </script>
 
 <template>
@@ -32,15 +29,8 @@ const updated = computed(() => relativeTime(props.project.updatedAt))
         </div>
 
         <div class="project-card__meta">
-          <span class="project-card__stat">
-            <Star :size="13" :stroke-width="1.8" aria-hidden="true" />
-            {{ formatNumber(project.stars ?? 0) }}
-          </span>
-          <span class="project-card__stat">
-            <GitFork :size="13" :stroke-width="1.8" aria-hidden="true" />
-            {{ formatNumber(project.forks ?? 0) }}
-          </span>
-          <span class="project-card__updated">Updated {{ updated }}</span>
+          <span class="project-card__type">{{ project.type ?? project.language ?? '项目' }}</span>
+          <span v-if="project.period" class="project-card__period">{{ project.period }}</span>
         </div>
 
         <span class="project-card__cta">
@@ -120,13 +110,13 @@ const updated = computed(() => relativeTime(props.project.updatedAt))
   color: var(--text-tertiary);
 }
 
-.project-card__stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.project-card__type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.project-card__updated {
+.project-card__period {
   margin-left: auto;
   white-space: nowrap;
 }

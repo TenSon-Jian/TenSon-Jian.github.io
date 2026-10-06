@@ -2,99 +2,21 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ArrowLeft, ArrowUpRight, CircleDot } from 'lucide-vue-next'
-import { fallbackRepos, findProject, projects as localProjects } from '@/data/fallback'
-import { githubService } from '@/services/github'
+import { findProject, projects as localProjects } from '@/data/projects'
 import { generateCover, generateScreenshots } from '@/utils/cover'
-import { formatDateTime, formatNumber, relativeTime } from '@/utils/format'
-import { renderMarkdown } from '@/utils/markdown'
 import ArchitectureDiagram from '@/components/project/ArchitectureDiagram.vue'
 import ImageLightbox from '@/components/project/ImageLightbox.vue'
-import MarkdownView from '@/components/note/MarkdownView.vue'
-import type { GithubRepo, Project } from '@/types'
+import type { Project } from '@/types'
 
 const route = useRoute()
 const slug = computed(() => String(route.params.slug))
 
-const local = computed(() => findProject(slug.value))
+const project = computed<Project | undefined>(() => findProject(slug.value))
 
-/** 仓库名来自本地档案的 repositoryUrl，而不是本地 slug（两者可能不同） */
-const repoName = computed(() => {
-  const url = local.value?.repositoryUrl
-  const name = url?.split('/').pop()
-  return name && name.length ? name : slug.value
-})
-
-/** 没有本地档案时，用 GitHub 仓库信息构造一个最小项目 */
-const remoteFallback = computed<Project | undefined>(() => {
-  const repo =
-    fallbackRepos.find((item) => item.name.toLowerCase() === slug.value) ??
-    fallbackRepos.find((item) => item.name.toLowerCase().includes(slug.value))
-  if (!repo) return undefined
-  return {
-    id: repo.name,
-    name: repo.name,
-    slug: slug.value,
-    description: repo.description ?? '暂无描述',
-    language: repo.language ?? undefined,
-    technologies: repo.topics ?? [],
-    stars: repo.stargazers_count,
-    forks: repo.forks_count,
-    updatedAt: repo.pushed_at,
-    repositoryUrl: repo.html_url,
-    demoUrl: repo.homepage ?? undefined,
-    type: 'GitHub Repository',
-    overview: repo.description ?? undefined,
-  }
-})
-
-const project = computed<Project | undefined>(() => local.value ?? remoteFallback.value)
-
-/** 该仓库的实时数据 */
-const repo = ref<GithubRepo | null>(null)
-const readme = ref('')
-const loading = ref(true)
 const lightboxIndex = ref<number | null>(null)
 
 const screenshots = computed(() => generateScreenshots(slug.value, 3))
 const cover = computed(() => project.value?.cover ?? generateCover({ seed: slug.value }))
-
-const readmeHtml = computed(() => (readme.value ? renderMarkdown(readme.value) : ''))
-const hasReadme = computed(() => Boolean(readme.value.trim()))
-
-const stats = computed(() => [
-  { label: 'Stars', value: formatNumber(repo.value?.stargazers_count ?? project.value?.stars ?? 0) },
-  { label: 'Forks', value: formatNumber(repo.value?.forks_count ?? project.value?.forks ?? 0) },
-  { label: 'Watchers', value: formatNumber(repo.value?.watchers_count ?? 0) },
-  {
-    label: 'Updated',
-    value: relativeTime(repo.value?.pushed_at ?? project.value?.updatedAt),
-  },
-])
-
-async function loadRepositoryData() {
-  loading.value = true
-  readme.value = ''
-  try {
-    // 用仓库名而不是本地 slug 请求，两者可能不一致（例如 slug: rms / repo: RMS）
-    const payload = await githubService.getRepository(repoName.value)
-    repo.value = payload.data
-  } catch {
-    repo.value = null
-  } finally {
-    loading.value = false
-  }
-
-  // README 单独请求，不阻塞首屏
-  try {
-    const payload = await githubService.getRepositoryReadme(repoName.value)
-    readme.value = payload.data
-  } catch {
-    readme.value = ''
-  }
-}
-
-onMounted(loadRepositoryData)
-watch(slug, loadRepositoryData)
 
 const relatedProjects = computed(() =>
   localProjects.filter((item) => item.slug !== slug.value).slice(0, 2),
@@ -190,13 +112,6 @@ onBeforeUnmount(() => observer?.disconnect())
           </a>
         </div>
       </div>
-
-      <dl class="detail__stats">
-        <div v-for="item in stats" :key="item.label">
-          <dt>{{ item.value }}</dt>
-          <dd>{{ item.label }}</dd>
-        </div>
-      </dl>
     </header>
 
     <!-- ── 章节导航（示意图中的一行 Overview / Architecture / … ）── -->
@@ -242,17 +157,7 @@ onBeforeUnmount(() => observer?.disconnect())
           </div>
           <div>
             <dt>主要语言</dt>
-            <dd>{{ repo?.language ?? project.language ?? '—' }}</dd>
-          </div>
-          <div v-if="repo">
-            <dt>最近提交</dt>
-            <dd>{{ formatDateTime(repo.pushed_at) }}</dd>
-          </div>
-          <div v-if="repo?.topics?.length">
-            <dt>Topics</dt>
-            <dd class="overview__topics">
-              <span v-for="topic in repo.topics" :key="topic" class="tag">{{ topic }}</span>
-            </dd>
+            <dd>{{ project.language ?? '—' }}</dd>
           </div>
         </dl>
       </div>
@@ -285,7 +190,7 @@ onBeforeUnmount(() => observer?.disconnect())
         </li>
       </ol>
       <p v-else class="detail__section-note">
-        功能清单还在整理中，可以先到 GitHub 仓库看提交记录。
+        功能清单还在整理中。可以先看下方 Overview 里的概览，或到仓库翻提交记录。
       </p>
     </section>
 
@@ -308,30 +213,32 @@ onBeforeUnmount(() => observer?.disconnect())
       </div>
     </section>
 
-    <!-- ── Development / README ── -->
+    <!-- ── Development ── -->
     <section id="development" class="detail__section">
       <h2 class="detail__section-title">Development</h2>
 
-      <div v-if="loading" class="readme-skeleton">
-        <div class="skeleton" style="height: 16px; width: 42%" />
-        <div class="skeleton" style="height: 10px; width: 88%" />
-        <div class="skeleton" style="height: 10px; width: 76%" />
-        <div class="skeleton" style="height: 120px; width: 100%" />
-      </div>
+      <dl class="overview__meta">
+        <div>
+          <dt>技术栈</dt>
+          <dd>{{ project.technologies.join(' · ') || '—' }}</dd>
+        </div>
+        <div>
+          <dt>项目类型</dt>
+          <dd>{{ project.type ?? '—' }}</dd>
+        </div>
+        <div>
+          <dt>开发时间</dt>
+          <dd>{{ project.period ?? '—' }}</dd>
+        </div>
+      </dl>
 
-      <MarkdownView
-        v-else-if="hasReadme"
-        :html="readmeHtml"
-        empty-text="这个仓库暂时没有 README。"
-      />
-
-      <div v-else class="empty-state">
+      <div class="empty-state">
         <img :src="cover" alt="" class="empty-state__cover" aria-hidden="true" />
         <p>
-          暂时无法读取该仓库的 README（GitHub API 在当前网络下不可达）。
-          你可以直接前往
-          <a :href="project.repositoryUrl" target="_blank" rel="noopener noreferrer">GitHub 仓库</a>
-          查看完整文档。
+          源码与提交记录在
+          <a :href="project.repositoryUrl" target="_blank" rel="noopener noreferrer">GitHub 仓库</a>。
+          开发过程记录见
+          <RouterLink to="/notes">笔记</RouterLink>。
         </p>
       </div>
     </section>
@@ -464,32 +371,6 @@ onBeforeUnmount(() => observer?.disconnect())
   }
 }
 
-.detail__stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, auto));
-  gap: var(--space-4) var(--space-6);
-  margin: 0;
-
-  div {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  dt {
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: -0.015em;
-    white-space: nowrap;
-  }
-
-  dd {
-    margin: 0;
-    font-size: 11.5px;
-    color: var(--text-tertiary);
-  }
-}
-
 // ── 章节导航：克制的一行文字，当前章节用下划线标记 ──
 .detail__nav {
   position: sticky;
@@ -619,12 +500,6 @@ onBeforeUnmount(() => observer?.disconnect())
   }
 }
 
-.overview__topics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
 // ── Features ──
 .features {
   display: grid;
@@ -694,14 +569,7 @@ onBeforeUnmount(() => observer?.disconnect())
   grid-column: 1 / -1;
 }
 
-// ── README ──
-.readme-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: var(--space-5);
-}
-
+// ── Development ──
 .empty-state__cover {
   width: 220px;
   border-radius: var(--radius);
@@ -750,10 +618,6 @@ onBeforeUnmount(() => observer?.disconnect())
     gap: var(--space-5);
     align-items: start;
   }
-
-  .detail__stats {
-    grid-template-columns: repeat(4, minmax(0, auto));
-  }
 }
 
 @media (max-width: 767px) {
@@ -761,11 +625,6 @@ onBeforeUnmount(() => observer?.disconnect())
   .features,
   .shots {
     grid-template-columns: 1fr;
-  }
-
-  .detail__stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-4);
   }
 
   .related__link {

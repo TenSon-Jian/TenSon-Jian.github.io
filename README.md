@@ -1,11 +1,11 @@
-# AJIAN — 极简个人博客 / GitHub 作品集
+# AJIAN — 极简个人博客 / 项目档案 / 在线工具箱
 
 > Building things quietly.
 
-一个安静、干净、具有个人风格的开发者网站：GitHub 项目档案、Markdown 笔记、纯前端开发工具箱，
+一个安静、干净、具有个人风格的开发者网站：项目档案、Markdown 笔记、纯前端开发工具箱，
 以及少量藏在角落里的兽人视觉元素。
 
-技术栈：**Vue 3 · TypeScript · Vite · Vue Router · Pinia · SCSS · Lucide Icons**
+技术栈：**Vue 3 · TypeScript · Vite · Vue Router · SCSS · Lucide Icons**
 
 > 想手动改代码？先看 **[ARCHITECTURE.md](./ARCHITECTURE.md)**：分层依赖、逐文件职责、
 > 「想改 X → 改哪个文件」速查表、组件接口、加页面/加工具/加文章的配方，以及几个容易踩的坑。
@@ -28,40 +28,30 @@ npm run build
 npm run preview
 ```
 
+## 内容与数据
+
+**站点没有任何运行时网络请求。** 所有内容都来自仓库内的静态数据文件，构建时直接打进产物，
+因此不存在加载态、失败态或重试逻辑：
+
+| 内容 | 文件 |
+| --- | --- |
+| 项目档案 | `src/data/projects.ts` |
+| 笔记元数据 | `src/data/notes.ts` + `src/data/notes/*.md` |
+| 工具清单 | `src/data/tools.ts` |
+
+首页的统计数字（Projects / Notes / Tools 三个计数）由这几份数据现算，不写死。
+
 ## 环境变量
 
 复制 `.env.example` 为 `.env`：
 
 ```ini
-VITE_GITHUB_USERNAME=TenSon-Jian
-# 可选：Personal Access Token，仅用于提升 GitHub API 速率限制
-VITE_GITHUB_TOKEN=
-# auto（默认，快照优先）| live（总是实时）| snapshot（只用快照，零请求）
-VITE_GITHUB_MODE=auto
-# 站点规范地址：注入 index.html 的 canonical / og:url / og:image
+# 站点规范地址：注入 index.html 的 canonical / og:url / og:image，
+# 同时作为 vue-router 拼绝对链接的前缀。绑自定义域名时改这里即可。
 VITE_SITE_URL=https://tenson-jian.github.io
 ```
 
-> 不配置也能运行：GitHub 数据会按「构建快照 → 缓存 → 网络 → 陈旧缓存 → 内置回退数据」的顺序降级，
-> 页面永远不会因为 API 不可用而白屏。
-
-### 构建快照（推荐开启）
-
-GitHub 未认证配额只有 **60 次/小时，而且按出口 IP 计算** —— 走代理或公司网关时，
-这份配额经常被别人耗尽，实时取数必然失败。因此站点支持在构建前把数据抓成静态快照：
-
-```bash
-npm run snapshot   # 手动抓取，写入 src/data/github-snapshot.json
-npm run build      # prebuild 会自动抓取（已有可用快照则跳过）
-```
-
-快照直接打包进产物，**运行时零 API 请求**，配额问题从架构上消失；代价是数据只在构建时更新，
-首页会显示「数据来自构建快照 · 日期」。
-
-- 快照文件缺失或结构不合法时，会自动退回内置回退数据，不会白屏。
-- 想强制刷新：`npm run snapshot`（`--force`），或 `node scripts/generate-github-snapshot.mjs --force`。
-- 抓取时设置 `GITHUB_TOKEN`（或 `VITE_GITHUB_TOKEN`）可把配额提到 5000 次/小时，成功率更高。
-- 想让本地开发始终看到实时数据：把 `VITE_GITHUB_MODE` 设为 `live`。
+> 不配置也能运行：`vite.config.ts` 里有一份相同的默认值兜底。
 
 ## 部署到 GitHub Pages
 
@@ -89,9 +79,7 @@ git push pages main
   无需改 HTML —— 见下方「自定义域名」。
 - **SPA 深链**。路由是 history 模式，直接访问 `/projects/rms` 会命中 [public/404.html](./public/404.html)：
   它把原始路由暂存到 `?p=` 再跳回根目录，由 `index.html` 的还原脚本改写回真实地址，因此刷新深链不会 404。
-- **构建期快照**。CI 里没有 `.env`，默认账号取自 `src/config/site.ts`。想让线上抓到真实数据，
-  在仓库 **Settings → Secrets and variables → Actions** 配置 `VITE_GITHUB_USERNAME`（目标账号）与可选的
-  `SNAPSHOT_TOKEN`（PAT，提高抓取成功率）。不配置也能发布：快照抓不到时退回内置回退数据，构建不会失败。
+- **构建无需凭据**。内容全部来自仓库内的静态数据，CI 里不需要任何 token 或账号配置。
 - **自定义域名**。本仓库**不含 CNAME 文件**。当前规范地址是 `https://tenson-jian.github.io`。
   若要改用 `ajian.dev`：先确认域名 DNS 已指向 GitHub Pages，再到 Settings → Pages → Custom domain
   填写 —— 顺序反了会导致 `tenson-jian.github.io` 也打不开；最后设置构建环境变量
@@ -131,13 +119,11 @@ src/
 │   └── tools/        ToolPage · ToolPanel · ToolGrid · ToolButton · CopyButton
 ├── composables/      useTheme · useReveal
 ├── config/           site.ts（站点信息 / 导航）
-├── data/             fallback.ts（项目档案 + 回退数据）· notes.ts · tools.ts
+├── data/             projects.ts（项目档案）· notes.ts · tools.ts
 │   └── notes/        Markdown 文章正文
 ├── router/           路由表 + 每页 title / description / canonical / OG
-├── services/         github.ts（唯一的 GitHub 出口）
-├── stores/           github.ts（Pinia，loading / error / empty / source）
 ├── styles/           tokens · base · utilities
-├── types/            Project · Note · Github* · DataSource
+├── types/            Project · Note · Architecture*
 ├── utils/            markdown · highlight · cover · color · format
 └── views/            页面 + tools/*
 public/
@@ -146,18 +132,17 @@ public/
 
 ## 关键实现
 
-### GitHub 数据层
+### 静态数据层
 
-```
-GitHub API → services/github.ts → Local Cache(localStorage) → Frontend
+全站内容都是 `src/data/` 下的普通 TS / Markdown 模块，由 Vite 在构建时打进产物：
+
+```ts
+data/projects.ts   // Project[]，首页精选与项目页、详情页共用
+data/notes.ts      // 笔记元数据 + 显式 `?raw` 导入的 .md 正文
+data/tools.ts      // 工具清单，驱动 /tools 网格与首页工具条
 ```
 
-- 30 分钟内直接使用缓存，24 小时内的陈旧缓存可作降级数据
-- 8 秒超时 + `AbortController`，403 / 404 / 超时都有明确提示
-- 区分 `network` / `cache` / `fallback` 三种来源，首页会淡淡提示当前来源并提供「重试」
-- 首页统计与项目卡片在请求期间显示骨架屏，完成后淡入
-- 覆盖 Repositories / Stars / Followers / **最近活动** / 更新时间；
-  「最近活动」在项目页底部以两列列表呈现，同样有骨架屏与空状态
+没有 store、没有 fetch、没有缓存与降级。代价是加内容要手动改文件，换来的是零运行时复杂度。
 
 ### Markdown 与代码高亮
 
